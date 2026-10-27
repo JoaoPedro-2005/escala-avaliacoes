@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f8fc">
+<meta name="apple-mobile-web-app-title" content="Escalas">
+<link rel="apple-touch-icon" href="icone.png">
+<link rel="icon" href="icone.png">
+<script>window.SITE_MODE = true;</script>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>M-CHAT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+  /* Layout: mesma linguagem da Escala ATA. Uma coluna, um cartão por pergunta com botões Sim/Não grandes,
+     barra de resultado fixa embaixo. Tema sempre claro, por escolha. */
+  :root {
+    --bg: #f4f8fc;
+    --surface: #ffffff;
+    --fg: #14212e;
+    --muted: #4a5a6a;
+    --line: #c9d6e3;
+    --accent: #1d5c8f;
+    --accent-ink: #ffffff;
+    --picked: #e3f0fb;
+    --alert: #a3470d;
+    --alert-bg: #fdeee3;
+    --ok: #2c6a3f;
+    --ok-bg: #e5f4e9;
+    --wait: #5a4a0a;
+    --wait-bg: #fbf3d6;
+    --whats: #1b7a45;
+    --font: "Atkinson Hyperlegible", "Segoe UI", Verdana, system-ui, sans-serif;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font); font-size: 20px; line-height: 1.45;
+    padding: 24px 16px 150px;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; display: grid; gap: 22px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+  h1 { font-size: 1.75rem; }
+  .sub { color: var(--muted); margin: 6px 0 0; font-size: 1rem; }
+  .home { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--accent); text-decoration: none; font-size: 1.05rem; min-height: 48px; margin-bottom: 6px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .fields .full { grid-column: 1 / -1; }
+  label { display: grid; gap: 6px; font-weight: 700; font-size: 1rem; }
+  input, textarea {
+    font: inherit; font-weight: 400; color: var(--fg); background: var(--bg);
+    border: 2px solid var(--line); border-radius: 10px; padding: 12px 14px; min-height: 56px; width: 100%;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .age { font-size: 1rem; color: var(--muted); margin: 0; }
+  .age b { color: var(--fg); }
+  .age.warn b { color: var(--alert); }
+
+  .howto { background: var(--picked); border-radius: 12px; padding: 14px 18px; font-size: 1.05rem; margin: 0; }
+  .howto b { color: var(--accent); }
+
+  .qs { display: grid; gap: 14px; }
+  .q { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 14px; }
+  .q.missing { border-color: var(--wait); box-shadow: 0 0 0 2px var(--wait-bg); }
+  .q-head { display: flex; gap: 14px; align-items: flex-start; }
+  .num { flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--picked); color: var(--accent);
+         display: grid; place-items: center; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .q-text { flex: 1; min-width: 0; font-size: 1.1rem; padding-top: 8px; }
+  .yn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opt {
+    font: inherit; font-weight: 700; font-size: 1.15rem; color: var(--fg); background: var(--surface);
+    border: 2px solid var(--line); border-radius: 12px; min-height: 60px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .opt .dot { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--muted); display: grid; place-items: center; }
+  .opt[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .opt[aria-checked="true"] .dot { border-color: var(--accent-ink); }
+  .opt[aria-checked="true"] .dot::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-ink); }
+
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--surface); border-top: 2px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .bar-in { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .score { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+  .score b { font-size: 2.2rem; line-height: 1; }
+  .score span { color: var(--muted); font-size: 1rem; }
+  .status { font-weight: 700; font-size: .95rem; padding: 8px 12px; border-radius: 10px; background: var(--ok-bg); color: var(--ok); }
+  .status.alert { background: var(--alert-bg); color: var(--alert); }
+  .status.wait { background: var(--wait-bg); color: var(--wait); }
+  .bar .go { margin-left: auto; }
+
+  .btn {
+    font: inherit; font-weight: 700; font-size: 1.05rem; text-decoration: none; text-align: center;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 60px; padding: 12px 20px; border-radius: 12px; border: 2px solid transparent; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+  .btn.whats { background: var(--whats); color: #fff; }
+  .btn.danger { background: var(--alert); color: #fff; }
+  .btn svg { width: 24px; height: 24px; flex: none; }
+
+  .result { display: grid; gap: 16px; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tile { border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 2px; }
+  .tile b { font-size: 2.6rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--muted); font-size: 1rem; }
+  .fails { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .fails li { display: flex; gap: 12px; align-items: flex-start; font-size: 1rem; }
+  .fails .n { flex: none; font-weight: 700; min-width: 2.2em; font-variant-numeric: tabular-nums; }
+  .fails .t { flex: 1; min-width: 0; }
+  .tag { display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: var(--alert-bg); color: var(--alert); margin-left: 6px; vertical-align: 2px; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #btnPrint { grid-column: 1 / -1; }
+  .note { color: var(--muted); font-size: .95rem; margin: 0; }
+  .toast { font-weight: 700; color: var(--ok); min-height: 1.4em; margin: 0; }
+  .confirm { display: grid; gap: 12px; background: var(--alert-bg); border-radius: 12px; padding: 16px; }
+  .confirm p { margin: 0; font-weight: 700; color: var(--alert); }
+  .confirm .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .copybox { width: 100%; min-height: 220px; font-size: .9rem; }
+  .foot { color: var(--muted); font-size: .85rem; text-align: center; margin: 0; }
+
+  @media (max-width: 620px) {
+    body { font-size: 18px; }
+    .fields, .actions { grid-template-columns: 1fr; }
+    .bar .go { margin-left: 0; width: 100%; }
+    .score b { font-size: 1.9rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; padding: 0; }
+    .bar, .howto, .actions, .no-print, .home, #confirmBox, #copyWrap, .toast { display: none !important; }
+    .panel, .q { border: 1px solid #999; border-radius: 6px; padding: 6px 10px; break-inside: avoid; background: #fff; box-shadow: none; }
+    .wrap, .qs { gap: 6px; max-width: none; }
+    .q { grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+    .q-text { padding-top: 0; font-size: 10pt; }
+    .num { width: 26px; height: 26px; background: #fff; color: #000; border: 1px solid #000; }
+    .yn { gap: 6px; grid-template-columns: auto auto; }
+    .opt { min-height: 0; padding: 2px 10px; font-size: 10pt; border: 1px solid #999; background: #fff !important; color: #000 !important; }
+    .opt[aria-checked="true"] { border: 2px solid #000; }
+    .opt .dot { width: 12px; height: 12px; border-width: 1.5px; border-color: #000 !important; }
+    .opt[aria-checked="true"] .dot::after { width: 6px; height: 6px; background: #000; }
+    input, textarea { border: 0; border-bottom: 1px solid #999; border-radius: 0; min-height: 0; padding: 2px 0; background: #fff; color: #000; }
+    .tile b { font-size: 22pt; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a class="home" id="homeLink" href="index.html" hidden>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      Voltar ao início
+    </a>
+    <h1>Modified Checklist for Autism in Toddlers (M-CHAT)</h1>
+    <p class="sub">Diana Robins, Deborah Fein &amp; Marianne Barton, 1999 · Traduzido pela Unidade de Autismo, Centro de Desenvolvimento da Criança – Hospital Pediátrico de Coimbra</p>
+  </header>
+
+  <section class="panel" aria-label="Dados da criança">
+    <div class="fields">
+      <label class="full">Nome
+        <input id="nome" type="text" autocomplete="off" placeholder="Digite o nome">
+      </label>
+      <label>Data de nascimento
+        <input id="nasc" type="date">
+      </label>
+      <label>Data
+        <input id="data" type="date">
+      </label>
+      <label>Preenchido por
+        <input id="por" type="text" autocomplete="off" placeholder="Digite o nome">
+      </label>
+      <label>Parentesco do informador
+        <input id="parent" type="text" autocomplete="off" placeholder="Ex.: mãe, pai, avó">
+      </label>
+    </div>
+    <p class="age" id="age"></p>
+  </section>
+
+  <p class="howto"><b>Por favor, preencha este questionário sobre o comportamento usual da criança. Responda a todas as questões.</b> Se o comportamento descrito for raro (ex. foi observado uma ou duas vezes), responda como se a criança não o apresente. Toque em <b>Sim</b> ou <b>Não</b> em cada pergunta.</p>
+
+  <div class="qs" id="qs"></div>
+
+  <section class="panel result" id="resultado" aria-label="Resultado">
+    <h2>Resultado</h2>
+    <div class="tiles">
+      <div class="tile"><b id="rFails">0</b><span>itens com falha (de 23)</span></div>
+      <div class="tile"><b id="rCrit">0</b><span>itens críticos com falha (de 6)</span></div>
+    </div>
+    <div class="status" id="rStatus"></div>
+    <p class="note" id="rMissing" hidden></p>
+    <div id="failWrap" hidden>
+      <h3 style="font-size:1.1rem;margin-bottom:10px">Itens com falha</h3>
+      <ul class="fails" id="failList"></ul>
+    </div>
+    <p class="note">Cotação: resultados com falha em 3 ou mais itens no total, ou em 2 dos itens críticos (2, 7, 9, 13, 14, 15), após confirmação, justificam uma avaliação formal por técnicos de neurodesenvolvimento.</p>
+
+    <div class="actions">
+      <a class="btn whats" id="btnWhats" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.5A8.4 8.4 0 1 1 21 11.5z"/></svg>
+        Enviar por WhatsApp
+      </a>
+      <a class="btn" id="btnMail" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        Enviar por e-mail
+      </a>
+      <button class="btn ghost" id="btnCopy" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        Copiar o resultado
+      </button>
+      <button class="btn" id="btnPdf" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6m-3-3 3 3 3-3"/></svg>
+        Salvar em PDF
+      </button>
+      <button class="btn ghost" id="btnPrint" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>
+        Imprimir
+      </button>
+    </div>
+    <p class="note" id="pdfNote" hidden>Para salvar em PDF ou imprimir, use o site da escala.</p>
+    <p class="toast" id="toast" role="status"></p>
+    <div id="copyWrap" hidden>
+      <p class="note">Não foi possível copiar sozinho. Toque no texto abaixo, selecione tudo e copie.</p>
+      <textarea id="copyText" class="copybox" readonly></textarea>
+    </div>
+
+    <div class="no-print">
+      <button class="btn ghost" id="btnNew" type="button" style="width:100%">Começar nova avaliação</button>
+      <div class="confirm" id="confirmBox" hidden>
+        <p>Tem certeza? Isso apaga tudo o que foi preenchido nesta avaliação.</p>
+        <div class="row">
+          <button class="btn danger" id="btnYes" type="button">Sim, apagar tudo</button>
+          <button class="btn ghost" id="btnNo" type="button">Não, voltar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Questionário de rastreio para crianças dos 16 aos 30 meses. O resultado não substitui a avaliação de um profissional.</p>
+</div>
+
+<div class="bar" role="region" aria-label="Resultado parcial">
+  <div class="bar-in">
+    <div class="score"><b id="fails">0</b><span>falhas · <span id="crit">0</span> críticas</span></div>
+    <div class="status" id="status"></div>
+    <a class="btn go" href="#resultado">Ver resultado e enviar</a>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// Texto igual à folha. fail = resposta que conta como falha; crit = item crítico.
+const QS = [
+  ["Gosta de brincar ao colo fazendo de “cavalinho”, etc.?", "N"],
+  ["Interessa-se pelas outras crianças?", "N", 1],
+  ["Gosta de subir objectos, como por exemplo, cadeiras, mesas?", "N"],
+  ["Gosta de jogar às escondidas?", "N"],
+  ["Brinca ao faz-de-conta, por exemplo, falar ao telefone ou dar de comer a uma boneca, etc.?", "N"],
+  ["Aponta com o indicador para pedir alguma coisa?", "N"],
+  ["Aponta com o indicador para mostrar interesse em alguma coisa?", "N", 1],
+  ["Brinca apropriadamente com brinquedos (carros ou Legos) sem levá-los à boca, abanar ou deitá-los ao chão?", "N"],
+  ["Alguma vez lhe trouxe objectos (brinquedos) para lhe mostrar alguma coisa?", "N", 1],
+  ["A criança mantém contacto visual por mais de um ou dois segundos?", "N"],
+  ["É muito sensível aos ruídos (ex. tapa os ouvidos)?", "S"],
+  ["Sorri como resposta às suas expressões faciais ou ao seu sorriso?", "N"],
+  ["Imita o adulto (ex. faz uma careta e ela imita)?", "N", 1],
+  ["Responde/olha quando o(a) chamam pelo nome?", "N", 1],
+  ["Se apontar para um brinquedo do outro lado da sala, a criança acompanha com o olhar?", "N", 1],
+  ["Já anda?", "N"],
+  ["Olha para as coisas para as quais o adulto está a olhar?", "N"],
+  ["Faz movimentos estranhos com as mãos/dedos próximo da cara?", "S"],
+  ["Tenta chamar a sua atenção para o que está a fazer?", "N"],
+  ["Alguma vez se preocupou quanto à sua audição?", "S"],
+  ["Compreende o que as pessoas lhe dizem?", "N"],
+  ["Por vezes fica a olhar para o vazio ou deambula ao acaso pelos espaços?", "S"],
+  ["Procura a sua reacção facial quando se vê confrontada com situações desconhecidas?", "N"],
+];
+const KEY = "mchat-v1";
+const FIELDS = ["nome","nasc","data","por","parent"];
+const WORD = { S: "Sim", N: "Não" };
+
+let ans = QS.map(() => null);
+
+function isFail(i) { return ans[i] !== null && ans[i] === QS[i][1]; }
+function counts() {
+  let f = 0, c = 0, missing = [];
+  QS.forEach((q, i) => { if (ans[i] === null) missing.push(i + 1); else if (isFail(i)) { f++; if (q[2]) c++; } });
+  return { f, c, missing };
+}
+// Critério: 3 ou mais falhas no total, ou 2 ou mais itens críticos com falha.
+function verdict({ f, c, missing }) {
+  if (f >= 3 || c >= 2) return { cls: "alert", text: "Indica avaliação por especialista" };
+  if (missing.length) return { cls: "wait", text: missing.length === 1 ? "Falta 1 pergunta" : `Faltam ${missing.length} perguntas` };
+  return { cls: "", text: "Não atinge o critério de avaliação" };
+}
+function fmtDate(v) { if (!v) return "—"; const [y,m,d] = v.split("-"); return `${d}/${m}/${y}`; }
+function months() {
+  const a = document.getElementById("nasc").value, b = document.getElementById("data").value;
+  if (!a || !b) return null;
+  const [y1,m1,d1] = a.split("-").map(Number), [y2,m2,d2] = b.split("-").map(Number);
+  const m = (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+  return m >= 0 ? m : null;
+}
+function ageText() { const m = months(); return m === null ? "" : (m === 1 ? "1 mês" : m + " meses"); }
+
+function build() {
+  const host = document.getElementById("qs");
+  host.innerHTML = QS.map((q, i) => `
+    <div class="q" id="q${i}" role="radiogroup" aria-labelledby="t${i}">
+      <div class="q-head"><div class="num">${i + 1}</div><div class="q-text" id="t${i}">${q[0]}</div></div>
+      <div class="yn">
+        <button type="button" class="opt" role="radio" aria-checked="false" data-i="${i}" data-v="S"><span class="dot"></span>Sim</button>
+        <button type="button" class="opt" role="radio" aria-checked="false" data-i="${i}" data-v="N"><span class="dot"></span>Não</button>
+      </div>
+    </div>`).join("");
+  host.addEventListener("click", e => {
+    const b = e.target.closest(".opt"); if (!b) return;
+    const i = +b.dataset.i;
+    ans[i] = ans[i] === b.dataset.v ? null : b.dataset.v;
+    document.getElementById("q" + i).classList.remove("missing");
+    refresh(); save();
+  });
+}
+
+function report() {
+  const v = id => document.getElementById(id).value.trim();
+  const k = counts(), vd = verdict(k);
+  const lines = [
+    "M-CHAT (Modified Checklist for Autism in Toddlers)",
+    "",
+    `Nome: ${v("nome") || "—"}`,
+    `Data de nascimento: ${fmtDate(v("nasc"))}${ageText() ? " (" + ageText() + ")" : ""}`,
+    `Data: ${fmtDate(v("data"))}`,
+    `Preenchido por: ${v("por") || "—"}`,
+    `Parentesco do informador: ${v("parent") || "—"}`,
+    "",
+    `RESULTADO: ${k.f} ${k.f === 1 ? "item" : "itens"} com falha (de 23); ${k.c} ${k.c === 1 ? "item crítico" : "itens críticos"} com falha (de 6)`,
+    vd.text,
+  ];
+  if (k.missing.length) lines.push(`Sem resposta: ${k.missing.join(", ")}`);
+  lines.push("", "Respostas:");
+  QS.forEach((q, i) => {
+    const a = ans[i] ? WORD[ans[i]] : "sem resposta";
+    let tail = "";
+    if (isFail(i)) tail = q[2] ? "  [FALHA - item crítico]" : "  [FALHA]";
+    lines.push(`${i + 1}. ${q[0]} ${a}${tail}`);
+  });
+  return lines.join("\n");
+}
+
+function refresh() {
+  QS.forEach((_, i) => document.querySelectorAll(`#q${i} .opt`).forEach(b => b.setAttribute("aria-checked", ans[i] === b.dataset.v)));
+  const k = counts(), vd = verdict(k);
+  document.getElementById("fails").textContent = k.f;
+  document.getElementById("crit").textContent = k.c;
+  document.getElementById("rFails").textContent = k.f;
+  document.getElementById("rCrit").textContent = k.c;
+  for (const id of ["status", "rStatus"]) {
+    const st = document.getElementById(id);
+    st.textContent = vd.text; st.className = "status" + (vd.cls ? " " + vd.cls : "");
+  }
+  const miss = document.getElementById("rMissing");
+  miss.hidden = !k.missing.length;
+  miss.textContent = k.missing.length ? `Perguntas ainda sem resposta: ${k.missing.join(", ")}.` : "";
+  const failed = QS.map((q, i) => [q, i]).filter(([, i]) => isFail(i));
+  document.getElementById("failWrap").hidden = !failed.length;
+  document.getElementById("failList").innerHTML = failed.map(([q, i]) =>
+    `<li><span class="n">${i + 1}.</span><span class="t">${q[0]} <b>${WORD[ans[i]]}</b>${q[2] ? '<span class="tag">crítico</span>' : ""}</span></li>`).join("");
+
+  const age = document.getElementById("age"), m = months();
+  age.className = "age" + (m !== null && (m < 16 || m > 30) ? " warn" : "");
+  age.innerHTML = m === null ? "Preencha as duas datas para ver a idade da criança em meses."
+    : `Idade na data da avaliação: <b>${ageText()}</b>` + (m < 16 || m > 30 ? " (fora da faixa de 16 a 30 meses do questionário)" : "");
+
+  const text = report();
+  const nome = document.getElementById("nome").value.trim();
+  const subj = "M-CHAT" + (nome ? " - " + nome : "");
+  document.getElementById("btnWhats").href = "https://wa.me/?text=" + encodeURIComponent(text);
+  document.getElementById("btnMail").href = embedded
+    ? "https://mail.google.com/mail/?view=cm&fs=1&su=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text)
+    : "mailto:?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text);
+}
+
+function save() {
+  try {
+    const d = { ans };
+    FIELDS.forEach(f => d[f] = document.getElementById(f).value);
+    localStorage.setItem(KEY, JSON.stringify(d));
+  } catch (e) {}
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (!d) return;
+    FIELDS.forEach(f => { if (typeof d[f] === "string") document.getElementById(f).value = d[f]; });
+    if (Array.isArray(d.ans)) ans = QS.map((_, i) => (d.ans[i] === "S" || d.ans[i] === "N") ? d.ans[i] : null);
+  } catch (e) {}
+}
+function today() { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+
+let embedded = true;
+try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+if (window.SITE_MODE) embedded = false;
+
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; clearTimeout(toast.h); toast.h = setTimeout(() => t.textContent = "", 4000); }
+
+function makePdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const v = id => document.getElementById(id).value.trim();
+  const L = 18, R = 192, W = R - L, BOTTOM = 278;
+  let y = 18;
+  const need = h => { if (y + h > BOTTOM) { doc.addPage(); y = 18; } };
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text("Modified Checklist for Autism in Toddlers (M-CHAT)", L, y); y += 5;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90);
+  doc.text("Diana Robins, Deborah Fein & Marianne Barton, 1999 · Traduzido pela Unidade de Autismo – Hospital Pediátrico de Coimbra", L, y); y += 8;
+  doc.setTextColor(0); doc.setFontSize(10.5);
+  const age = ageText();
+  [["Nome", v("nome") || "—"], ["Data de nascimento", fmtDate(v("nasc")) + (age ? `  (${age})` : "")], ["Data", fmtDate(v("data"))],
+   ["Preenchido por", v("por") || "—"], ["Parentesco do informador", v("parent") || "—"]].forEach(([k, val]) => {
+    doc.setFont("helvetica", "bold"); doc.text(k + ":", L, y);
+    doc.setFont("helvetica", "normal"); doc.text(val, L + 50, y); y += 5.6;
+  });
+
+  const k = counts(), vd = verdict(k);
+  y += 2;
+  doc.setLineWidth(0.4); doc.rect(L, y, W, 15);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+  doc.text(`Falhas: ${k.f} de 23   ·   Itens críticos com falha: ${k.c} de 6`, L + 4, y + 6.2);
+  doc.setFontSize(10.5); doc.text(vd.text + (k.missing.length && vd.cls === "alert" ? ` (sem resposta: ${k.missing.join(", ")})` : ""), L + 4, y + 11.8);
+  y += 21;
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+  doc.text("Sim", R - 21, y, { align: "center" }); doc.text("Não", R - 7, y, { align: "center" });
+  doc.text("Resultado", R - 40, y, { align: "center" });
+  y += 3;
+  doc.setLineWidth(0.2); doc.line(L, y, R, y); y += 5;
+
+  QS.forEach((q, i) => {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    const lines = doc.splitTextToSize(q[0], W - 62);
+    const h = lines.length * 4.4 + 2.6;
+    need(h);
+    doc.setFont("helvetica", "bold"); doc.text(String(i + 1), L + 2, y);
+    doc.setFont("helvetica", "normal"); doc.text(lines, L + 10, y);
+    const yc = y - 1.2;
+    [["S", R - 21], ["N", R - 7]].forEach(([val, x]) => {
+      doc.text(WORD[val], x, y, { align: "center" });
+      if (ans[i] === val) { doc.setLineWidth(0.5); doc.ellipse(x, yc, 5.2, 3); }
+    });
+    if (isFail(i)) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+      doc.text(q[2] ? "FALHA (crítico)" : "FALHA", R - 40, y, { align: "center" });
+    } else if (ans[i] === null) {
+      doc.setFontSize(8.5); doc.setTextColor(120); doc.text("sem resposta", R - 40, y, { align: "center" }); doc.setTextColor(0);
+    }
+    y += h - 2.6;
+    doc.setDrawColor(210); doc.setLineWidth(0.15); doc.line(L, y, R, y); doc.setDrawColor(0);
+    y += 4.6;
+  });
+
+  y += 2;
+  need(16);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(80);
+  doc.text(doc.splitTextToSize("Cotação: resultados com falha em 3 ou mais itens no total, ou em 2 dos itens críticos (2, 7, 9, 13, 14, 15), após confirmação, justificam uma avaliação formal por técnicos de neurodesenvolvimento. Questionário de rastreio para crianças dos 16 aos 30 meses.", W), L, y);
+  doc.setTextColor(0);
+
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p); doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text(`Folha ${p} de ${pages}`, R, 290, { align: "right" }); doc.setTextColor(0);
+  }
+  return doc;
+}
+
+function pdfName() {
+  const nome = document.getElementById("nome").value.trim().replace(/[\\/:*?"<>|]/g, "");
+  const d = fmtDate(document.getElementById("data").value).replace(/\//g, "-");
+  return `M-CHAT${nome ? " - " + nome : ""}${d !== "—" ? " - " + d : ""}.pdf`;
+}
+
+build();
+load();
+if (!document.getElementById("data").value) document.getElementById("data").value = today();
+refresh();
+
+FIELDS.forEach(f => document.getElementById(f).addEventListener("input", () => { refresh(); save(); }));
+
+// Ao abrir o resultado com perguntas em branco, destaca as que faltam.
+document.querySelector(".bar .go").addEventListener("click", () => {
+  counts().missing.forEach(n => document.getElementById("q" + (n - 1)).classList.add("missing"));
+});
+
+if (!embedded) {
+  document.getElementById("homeLink").hidden = !window.SITE_MODE;
+  const p = document.getElementById("btnPrint");
+  p.hidden = false;
+  p.addEventListener("click", () => window.print());
+  const b = document.getElementById("btnPdf");
+  b.hidden = false;
+  b.addEventListener("click", async () => {
+    if (!window.jspdf) { toast("Não foi possível criar o PDF. Verifique se o aparelho está com internet."); return; }
+    const doc = makePdf(), name = pdfName();
+    const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+    if (touch && navigator.canShare) {
+      const file = new File([doc.output("blob")], name, { type: "application/pdf" });
+      if (navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: name }); return; }
+        catch (e) { if (e.name === "AbortError") return; }
+      }
+    }
+    doc.save(name);
+    toast("PDF salvo na pasta Downloads.");
+  });
+} else {
+  document.getElementById("pdfNote").hidden = false;
+}
+
+document.getElementById("btnCopy").addEventListener("click", () => {
+  const text = report();
+  const fallback = () => {
+    const w = document.getElementById("copyWrap"), ta = document.getElementById("copyText");
+    ta.value = text; w.hidden = false; ta.focus(); ta.select();
+  };
+  try {
+    navigator.clipboard.writeText(text).then(() => toast("Copiado. Agora é só colar onde quiser."), fallback);
+  } catch (e) { fallback(); }
+});
+
+const confirmBox = document.getElementById("confirmBox"), btnNew = document.getElementById("btnNew");
+btnNew.addEventListener("click", () => { confirmBox.hidden = false; btnNew.hidden = true; });
+document.getElementById("btnNo").addEventListener("click", () => { confirmBox.hidden = true; btnNew.hidden = false; });
+document.getElementById("btnYes").addEventListener("click", () => {
+  ans = QS.map(() => null);
+  FIELDS.forEach(f => document.getElementById(f).value = "");
+  document.getElementById("data").value = today();
+  document.getElementById("copyWrap").hidden = true;
+  document.querySelectorAll(".q.missing").forEach(q => q.classList.remove("missing"));
+  confirmBox.hidden = true; btnNew.hidden = false;
+  refresh(); save();
+  window.scrollTo(0, 0);
+  toast("");
+});
+</script>
+
+</body>
+</html>

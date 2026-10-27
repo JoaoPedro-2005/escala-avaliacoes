@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f8fc">
+<meta name="apple-mobile-web-app-title" content="Escalas">
+<link rel="apple-touch-icon" href="icone.png">
+<link rel="icon" href="icone.png">
+<script>window.SITE_MODE = true;</script>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Escala ATA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+  /* Layout: uma coluna larga, cartões por área, barra de pontuação fixa embaixo. Letra grande e alto contraste.
+     Tema sempre claro, por escolha: a página não muda para escuro mesmo se o aparelho estiver no modo escuro. */
+  :root {
+    --bg: #f4f8fc;
+    --surface: #ffffff;
+    --fg: #14212e;
+    --muted: #4a5a6a;
+    --line: #c9d6e3;
+    --accent: #1d5c8f;
+    --accent-ink: #ffffff;
+    --picked: #e3f0fb;
+    --picked-line: #1d5c8f;
+    --alert: #a3470d;
+    --alert-bg: #fdeee3;
+    --ok: #2c6a3f;
+    --ok-bg: #e5f4e9;
+    --whats: #1b7a45;
+    --font: "Atkinson Hyperlegible", "Segoe UI", Verdana, system-ui, sans-serif;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font); font-size: 20px; line-height: 1.45;
+    padding: 24px 16px 140px;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; display: grid; gap: 22px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+  h1 { font-size: 1.75rem; }
+  .sub { color: var(--muted); margin: 6px 0 0; font-size: 1rem; }
+  .home { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--accent); text-decoration: none; font-size: 1.05rem; min-height: 48px; margin-bottom: 6px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .fields .full { grid-column: 1 / -1; }
+  label { display: grid; gap: 6px; font-weight: 700; font-size: 1rem; }
+  input, textarea {
+    font: inherit; font-weight: 400; color: var(--fg); background: var(--bg);
+    border: 2px solid var(--line); border-radius: 10px; padding: 12px 14px; min-height: 56px; width: 100%;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .howto { background: var(--picked); border-radius: 12px; padding: 14px 18px; font-size: 1.05rem; }
+  .howto b { color: var(--accent); }
+
+  .area { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 12px; }
+  .area-head { display: flex; gap: 14px; align-items: flex-start; }
+  .num { flex: none; min-width: 52px; height: 44px; padding: 0 8px; border-radius: 10px; background: var(--picked); color: var(--accent);
+         display: grid; place-items: center; font-weight: 700; font-size: 1rem; letter-spacing: .04em; }
+  .area-title { flex: 1; min-width: 0; display: grid; gap: 4px; }
+  .area-title h2 { font-size: 1.2rem; }
+  .area-title p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .pts { flex: none; font-weight: 700; font-size: .95rem; padding: 6px 12px; border-radius: 999px; border: 2px solid var(--line); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pts.on { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+
+  .items { display: grid; gap: 8px; }
+  .item {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    font: inherit; font-size: 1.05rem; color: var(--fg); background: var(--surface);
+    border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 60px; cursor: pointer;
+  }
+  .item .box { flex: none; width: 32px; height: 32px; border-radius: 8px; border: 3px solid var(--muted); display: grid; place-items: center; }
+  .item .box svg { width: 22px; height: 22px; opacity: 0; }
+  .item[aria-checked="true"] { background: var(--picked); border-color: var(--picked-line); font-weight: 700; }
+  .item[aria-checked="true"] .box { background: var(--accent); border-color: var(--accent); }
+  .item[aria-checked="true"] .box svg { opacity: 1; }
+  .item span.t { min-width: 0; }
+
+  /* Barra fixa de pontuação */
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--surface); border-top: 2px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .bar-in { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .score { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+  .score b { font-size: 2.2rem; line-height: 1; }
+  .score span { color: var(--muted); font-size: 1rem; }
+  .status { font-weight: 700; font-size: .95rem; padding: 8px 12px; border-radius: 10px; background: var(--ok-bg); color: var(--ok); }
+  .status.alert { background: var(--alert-bg); color: var(--alert); }
+  .bar .go { margin-left: auto; }
+
+  .btn {
+    font: inherit; font-weight: 700; font-size: 1.05rem; text-decoration: none; text-align: center;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 60px; padding: 12px 20px; border-radius: 12px; border: 2px solid transparent; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+  .btn.whats { background: var(--whats); color: #fff; }
+  .btn.danger { background: var(--alert); color: #fff; }
+  .btn svg { width: 24px; height: 24px; flex: none; }
+
+  .result { display: grid; gap: 16px; }
+  .result-score { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .big { font-size: 3.4rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .big small { font-size: 1.2rem; color: var(--muted); font-weight: 400; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #btnPrint { grid-column: 1 / -1; }
+  .note { color: var(--muted); font-size: .95rem; margin: 0; }
+  .toast { font-weight: 700; color: var(--ok); min-height: 1.4em; margin: 0; }
+  .confirm { display: grid; gap: 12px; background: var(--alert-bg); border-radius: 12px; padding: 16px; }
+  .confirm p { margin: 0; font-weight: 700; color: var(--alert); }
+  .confirm .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .copybox { width: 100%; min-height: 220px; font-size: .9rem; }
+  .foot { color: var(--muted); font-size: .85rem; text-align: center; margin: 0; }
+
+  @media (max-width: 620px) {
+    body { font-size: 18px; }
+    .fields, .actions { grid-template-columns: 1fr; }
+    .bar .go { margin-left: 0; width: 100%; }
+    .score b { font-size: 1.9rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+  /* Impressão: folha limpa, sem botões */
+  .print-only { display: none; }
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; padding: 0; }
+    .bar, .howto, .actions, .no-print, .home, #confirmBox, #copyWrap, .toast { display: none !important; }
+    .panel, .area { border: 1px solid #999; border-radius: 6px; padding: 8px 10px; break-inside: avoid; background: #fff; }
+    .wrap { gap: 8px; max-width: none; }
+    .item { min-height: 0; padding: 2px 0; border: 0; background: #fff !important; font-size: 10pt; gap: 8px; color: #000; }
+    .item .box { width: 14px; height: 14px; border-width: 1.5px; border-radius: 2px; border-color: #000; background: #fff !important; }
+    .item .box svg { width: 11px; height: 11px; }
+    .item[aria-checked="true"] .box svg path { stroke: #000; }
+    .items { gap: 0; }
+    .num { background: #fff; color: #000; border: 1px solid #000; height: 26px; min-width: 40px; }
+    .pts, .pts.on { background: #fff; color: #000; border: 1px solid #000; }
+    input, textarea { border: 0; border-bottom: 1px solid #999; border-radius: 0; min-height: 0; padding: 2px 0; background: #fff; color: #000; }
+    .print-only { display: block; }
+    .big { font-size: 26pt; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a class="home" id="homeLink" href="index.html" hidden>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      Voltar ao início
+    </a>
+    <h1>Escala de Traços Autísticos (ATA)</h1>
+    <p class="sub">Ballabriga et al., 1994; adapt. Assumpção et al.</p>
+  </header>
+
+  <section class="panel" aria-label="Dados da criança">
+    <div class="fields">
+      <label class="full">Nome da criança
+        <input id="nome" type="text" autocomplete="off" placeholder="Digite o nome">
+      </label>
+      <label>Data de nascimento
+        <input id="nasc" type="date">
+      </label>
+      <label>Data da avaliação
+        <input id="aval" type="date">
+      </label>
+      <label class="full">Pai / Mãe / Responsável
+        <input id="resp" type="text" autocomplete="off" placeholder="Digite o nome">
+      </label>
+      <label class="full">Observações
+        <textarea id="obs" placeholder="Anotações livres (opcional)"></textarea>
+      </label>
+    </div>
+  </section>
+
+  <p class="howto"><b>Como usar:</b> toque em cada sintoma que a criança apresenta. Ele fica azul e marcado. Toque de novo para desmarcar. A pontuação é calculada sozinha, na barra lá embaixo.</p>
+
+  <div id="areas" class="wrap" style="gap:18px"></div>
+
+  <section class="panel result" id="resultado" aria-label="Resultado">
+    <h2>Resultado</h2>
+    <div class="result-score">
+      <div class="big"><span id="rTotal">0</span> <small>de 45 pontos</small></div>
+      <div class="status" id="rStatus"></div>
+    </div>
+    <p class="note">Cada área vale 0 (nenhum sintoma), 1 (um sintoma) ou 2 (dois ou mais). Ponto de corte: 15.</p>
+
+    <div class="actions">
+      <a class="btn whats" id="btnWhats" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.5A8.4 8.4 0 1 1 21 11.5z"/></svg>
+        Enviar por WhatsApp
+      </a>
+      <a class="btn" id="btnMail" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        Enviar por e-mail
+      </a>
+      <button class="btn ghost" id="btnCopy" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        Copiar o resultado
+      </button>
+      <button class="btn" id="btnPdf" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6m-3-3 3 3 3-3"/></svg>
+        Salvar em PDF
+      </button>
+      <button class="btn ghost" id="btnPrint" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>
+        Imprimir
+      </button>
+    </div>
+    <p class="note" id="pdfNote" hidden>Para salvar em PDF ou imprimir, use a versão desta página instalada no computador.</p>
+    <p class="toast" id="toast" role="status"></p>
+    <div id="copyWrap" hidden>
+      <p class="note">Não foi possível copiar sozinho. Toque no texto abaixo, selecione tudo e copie.</p>
+      <textarea id="copyText" class="copybox" readonly></textarea>
+    </div>
+
+    <div class="no-print">
+      <button class="btn ghost" id="btnNew" type="button" style="width:100%">Começar nova avaliação</button>
+      <div class="confirm" id="confirmBox" hidden>
+        <p>Tem certeza? Isso apaga tudo o que foi preenchido nesta avaliação.</p>
+        <div class="row">
+          <button class="btn danger" id="btnYes" type="button">Sim, apagar tudo</button>
+          <button class="btn ghost" id="btnNo" type="button">Não, voltar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Instrumento de triagem. O resultado não substitui a avaliação de um profissional.</p>
+</div>
+
+<div class="bar" role="region" aria-label="Pontuação">
+  <div class="bar-in">
+    <div class="score"><b id="total">0</b><span>de 45 pontos</span></div>
+    <div class="status" id="status"></div>
+    <a class="btn go" href="#resultado">Ver resultado e enviar</a>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const AREAS = [
+  ["I","Dificuldade na interação social","O desvio da sociabilidade pode oscilar entre formas leves, como negativismo e evitação do contato ocular, até formas graves, como um intenso isolamento.",
+    ["Não sorri","Ausência de aproximações espontâneas","Não busca companhia","Busca constantemente seu cantinho (esconderijo)","Evita pessoas","É incapaz de manter um intercâmbio social","Isolamento intenso"]],
+  ["II","Manipulação do ambiente","Pode não responder às solicitações e manter-se indiferente ao ambiente, ou ter crises bruscas de birra e risos sem motivo para ser o centro da atenção.",
+    ["Não responde às solicitações","Mudança repentina de humor","Mantém-se indiferente, sem expressão","Risos compulsivos","Birra e raiva passageira","Excitação motora ou verbal (ir de um lugar a outro, falar sem parar)"]],
+  ["III","Utilização das pessoas a seu redor","A relação com o adulto quase nunca é interativa; normalmente usa o adulto como meio para conseguir o que deseja.",
+    ["Utiliza-se do adulto como um objeto, levando-o até aquilo que deseja","O adulto lhe serve como apoio para conseguir o que deseja (ex.: usa o adulto como apoio para pegar bolacha)","O adulto é o meio para suprir uma necessidade que não é capaz de realizar só (ex.: amarrar sapatos)","Se o adulto não responde às suas demandas, atua interferindo na conduta desse adulto"]],
+  ["IV","Resistência a mudanças","Pode variar da irritabilidade até franca recusa.",
+    ["Insistente em manter a rotina","Grande dificuldade em aceitar fatos que alteram sua rotina, como mudanças de lugar, de vestuário e na alimentação","Apresenta resistência a mudanças, persistindo na mesma resposta ou atividade"]],
+  ["V","Busca de uma ordem rígida","Tendência a ordenar tudo, podendo chegar a uma conduta obsessiva, sem a qual não consegue desenvolver nenhuma atividade.",
+    ["Ordenação dos objetos de acordo com critérios próprios e pré-estabelecidos","Prende-se a uma ordenação espacial (cada coisa sempre em seu lugar)","Prende-se a uma sequência temporal (cada coisa em seu tempo)","Prende-se a uma correspondência pessoa-lugar (cada pessoa sempre no lugar determinado)"]],
+  ["VI","Falta de contato visual. Olhar indefinido","Pode variar desde um olhar estranho até constante evitação dos estímulos visuais.",
+    ["Desvia os olhares diretos, não olhando nos olhos","Volta a cabeça ou o olhar quando é chamado (olhar para fora)","Expressão do olhar vazio e sem vida","Quando segue os estímulos com os olhos, somente o faz de maneira intermitente","Fixa os objetos com um olhar periférico, não central","Dá a sensação de que não olha"]],
+  ["VII","Mímica inexpressiva","Revela a carência da comunicação não verbal, desde certa expressividade até ausência total de resposta.",
+    ["Se fala, não utiliza a expressão facial, gestual ou vocal com a frequência esperada","Não mostra uma reação antecipatória","Não expressa através da mímica ou olhar aquilo que quer ou o que sente","Imobilidade facial"]],
+  ["VIII","Distúrbios de sono","Quando pequeno dorme muitas horas e, quando maior, dorme poucas horas, comparado ao esperado para a idade.",
+    ["Não quer ir dormir","Levanta-se muito cedo","Sono irregular (em intervalos)","Troca o dia pela noite","Dorme poucas horas"]],
+  ["IX","Alteração na alimentação","Pode ser quantitativa e/ou qualitativa, desde deixar de se alimentar até opor-se ativamente.",
+    ["Seletividade alimentar rígida (ex.: come o mesmo tipo de alimento sempre)","Come outras coisas além de alimentos (papel, insetos)","Quando pequeno não mastigava","Apresenta uma atividade ruminante","Vômitos","Come grosseiramente, esparrama a comida ou a atira","Rituais (esfarela alimentos antes da ingestão)","Ausência de paladar (falta de sensibilidade gustativa)"]],
+  ["X","Dificuldade no controle dos esfíncteres","O controle pode existir, porém ser usado para manipular ou chamar a atenção do adulto.",
+    ["Medo de sentar-se no vaso sanitário","Utiliza os esfíncteres para manipular o adulto","Utiliza os esfíncteres como estimulação corporal, para obtenção de prazer","Tem controle diurno, porém o noturno é tardio ou ausente"]],
+  ["XI","Exploração dos objetos (apalpar, chupar)","Analisa os objetos pelos sentidos, mais do que pela visão, sem uma finalidade específica.",
+    ["Morde e engole objetos não alimentares","Chupa e coloca as coisas na boca","Cheira tudo","Apalpa tudo. Examina as superfícies com os dedos de maneira minuciosa"]],
+  ["XII","Uso inapropriado dos objetos","Não utiliza os objetos de modo funcional, mas de uma forma bizarra.",
+    ["Ignora os objetos ou mostra um interesse momentâneo","Pega, golpeia ou simplesmente os atira no chão","Conduta atípica com os objetos (segura indiferentemente nas mãos ou gira)","Carrega insistentemente consigo determinado objeto","Se interessa somente por uma parte do objeto ou do brinquedo","Coleciona objetos estranhos","Utiliza os objetos de forma particular e inadequada"]],
+  ["XIII","Falta de atenção","Dificuldades de atenção e concentração. Às vezes fixa a atenção nas próprias produções sonoras ou motoras, parecendo ausente.",
+    ["Quando realiza uma atividade, fixa a atenção por curto espaço de tempo ou é incapaz de fixá-la","Age como se fosse surdo","Tempo de resposta aumentado. Entende as instruções com dificuldade (quando não lhe interessa, não as entende)","Resposta retardada","Muitas vezes dá a sensação de ausência"]],
+  ["XIV","Ausência de interesse pela aprendizagem","Aprender representa esforço de atenção e de intercâmbio pessoal, uma ruptura em sua rotina.",
+    ["Não quer aprender","Cansa-se muito depressa, ainda que de atividade que goste","Esquece rapidamente","Insiste em ser ajudado, ainda que saiba fazer","Insiste constantemente em mudar de atividade"]],
+  ["XV","Falta de iniciativa","Busca constantemente a comodidade e espera que lhe deem tudo pronto.",
+    ["É incapaz de ter iniciativa própria","Busca a comodidade","Passividade, falta de interesse","Lentidão","Prefere que outro faça o trabalho para ele"]],
+  ["XVI","Alteração de linguagem e comunicação","Pode variar desde um atraso de linguagem até uso exclusivo de fala particular e estranha.",
+    ["Mutismo","Estereotipias vocais","Entonação incorreta","Ecolalia imediata e/ou retardada","Repetição de palavras ou frases que podem (ou não) ter valor comunicativo","Emite sons estereotipados quando está agitado e em outras ocasiões, sem razão aparente","Não se comunica por gestos","As interações com adulto não são nunca um diálogo"]],
+  ["XVII","Não manifesta habilidades e conhecimentos","Nunca manifesta tudo aquilo que é capaz de fazer, dificultando a avaliação dos profissionais.",
+    ["Ainda que saiba fazer uma coisa, não a realiza, se não quiser","Não demonstra o que sabe, até ter uma necessidade primária ou um interesse muito específico","Aprende coisas, porém só as demonstra em determinados lugares e com determinadas pessoas","Às vezes, surpreende por suas habilidades inesperadas"]],
+  ["XVIII","Reações inapropriadas ante a frustração","Manifesta desde aborrecimento até reação de cólera diante da frustração.",
+    ["Reações de desagrado caso seja esquecida alguma coisa","Reações de desagrado caso seja interrompida alguma atividade que goste","Desgostoso quando os desejos e as expectativas não se cumprem","Reações de birra"]],
+  ["XIX","Não assume responsabilidades","É incapaz de fazer-se responsável, precisando de ordens sucessivas para realizar algo.",
+    ["Não assume nenhuma responsabilidade, por menor que seja","Para chegar a fazer alguma coisa, é preciso repetir muitas vezes ou elevar o tom de voz"]],
+  ["XX","Hiperatividade / hipoatividade","Desde agitação desordenada e incontrolada até grande passividade, sem finalidade.",
+    ["A criança está constantemente em movimento","Mesmo estimulada, não se move","Barulhento. Dá a sensação de que é obrigado a fazer ruído/barulho","Vai de um lugar a outro, sem parar","Fica pulando (saltando) no mesmo lugar","Não se move nunca do lugar onde está sentado"]],
+  ["XXI","Movimentos estereotipados e repetitivos","Ocorrem em situações de repouso ou atividade, com início repentino.",
+    ["Balanceia-se","Olha e brinca com as mãos e os dedos","Tapa os olhos e as orelhas","Dá pontapés","Faz caretas e movimentos estranhos com a face","Roda objetos ou sobre si mesmo","Caminha na ponta dos pés ou saltando, arrasta os pés, anda fazendo movimentos estranhos","Torce o corpo, mantém postura desequilibrada, pernas dobradas, cabeça recolhida aos pés, extensões violentas do corpo"]],
+  ["XXII","Ignora o perigo","Expõe-se a riscos sem ter consciência do perigo.",
+    ["Não se dá conta do perigo","Sobe em todos os lugares","Parece insensível à dor"]],
+  ["XXIII","Aparecimento antes dos 36 meses (DSM-IV)","Marque se os sinais apareceram antes dos 3 anos de idade.",
+    ["Sim"]],
+];
+const MAX = AREAS.reduce((s, a) => s + Math.min(2, a[3].length), 0); // 45
+const CUT = 15;
+const KEY = "escala-ata-v1";
+const FIELDS = ["nome","nasc","aval","resp","obs"];
+
+let marks = AREAS.map(a => a[3].map(() => false));
+
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function areaPoints(i) { const n = marks[i].filter(Boolean).length; return n === 0 ? 0 : n === 1 ? 1 : 2; }
+function total() { return AREAS.reduce((s, _, i) => s + areaPoints(i), 0); }
+function ptsLabel(p) { return p === 1 ? "1 ponto" : p + " pontos"; }
+function fmtDate(v) { if (!v) return "—"; const [y,m,d] = v.split("-"); return `${d}/${m}/${y}`; }
+function statusText(t) { return t >= CUT ? `Atingiu o ponto de corte (${CUT})` : `Abaixo do ponto de corte (${CUT})`; }
+
+function build() {
+  const host = document.getElementById("areas");
+  host.innerHTML = AREAS.map((a, i) => `
+    <section class="area" aria-labelledby="h${i}">
+      <div class="area-head">
+        <div class="num">${a[0]}</div>
+        <div class="area-title"><h2 id="h${i}">${a[1]}</h2><p>${a[2]}</p></div>
+        <div class="pts" id="p${i}">0 pontos</div>
+      </div>
+      <div class="items">
+        ${a[3].map((t, j) => `<button type="button" class="item" role="checkbox" aria-checked="false" id="i${i}_${j}" data-a="${i}" data-j="${j}"><span class="box">${CHECK}</span><span class="t">${t}</span></button>`).join("")}
+      </div>
+    </section>`).join("");
+  host.addEventListener("click", e => {
+    const b = e.target.closest(".item"); if (!b) return;
+    const i = +b.dataset.a, j = +b.dataset.j;
+    marks[i][j] = !marks[i][j];
+    refresh(); save();
+  });
+}
+
+function report() {
+  const v = id => document.getElementById(id).value.trim();
+  const t = total();
+  const lines = [
+    "ESCALA DE TRAÇOS AUTÍSTICOS (ATA)",
+    "",
+    `Criança: ${v("nome") || "—"}`,
+    `Nascimento: ${fmtDate(v("nasc"))}`,
+    `Responsável: ${v("resp") || "—"}`,
+    `Data da avaliação: ${fmtDate(v("aval"))}`,
+    "",
+    `PONTUAÇÃO: ${t} de ${MAX} pontos`,
+    statusText(t),
+    "",
+  ];
+  AREAS.forEach((a, i) => {
+    lines.push(`${a[0]}. ${a[1]}: ${ptsLabel(areaPoints(i))}`);
+    a[3].forEach((s, j) => { if (marks[i][j]) lines.push(`   • ${s}`); });
+  });
+  if (v("obs")) lines.push("", "Observações:", v("obs"));
+  return lines.join("\n");
+}
+
+function refresh() {
+  AREAS.forEach((a, i) => {
+    a[3].forEach((_, j) => document.getElementById(`i${i}_${j}`).setAttribute("aria-checked", marks[i][j]));
+    const p = areaPoints(i), el = document.getElementById("p" + i);
+    el.textContent = ptsLabel(p); el.classList.toggle("on", p > 0);
+  });
+  const t = total();
+  for (const [n, s] of [["total","status"],["rTotal","rStatus"]]) {
+    document.getElementById(n).textContent = t;
+    const st = document.getElementById(s);
+    st.textContent = statusText(t); st.classList.toggle("alert", t >= CUT);
+  }
+  const text = report();
+  const nome = document.getElementById("nome").value.trim();
+  const subj = "Escala ATA" + (nome ? " - " + nome : "");
+  document.getElementById("btnWhats").href = "https://wa.me/?text=" + encodeURIComponent(text);
+  document.getElementById("btnMail").href = embedded
+    ? "https://mail.google.com/mail/?view=cm&fs=1&su=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text)
+    : "mailto:?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text);
+}
+
+function save() {
+  try {
+    const data = { marks };
+    FIELDS.forEach(f => data[f] = document.getElementById(f).value);
+    localStorage.setItem(KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (!d) return;
+    FIELDS.forEach(f => { if (typeof d[f] === "string") document.getElementById(f).value = d[f]; });
+    if (Array.isArray(d.marks)) marks = AREAS.map((a, i) => a[3].map((_, j) => !!(d.marks[i] && d.marks[i][j])));
+  } catch (e) {}
+}
+function today() { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+
+let embedded = true;
+try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+// No site próprio (Netlify) tudo funciona, mesmo dentro da pré-visualização do painel.
+if (window.SITE_MODE) { embedded = false; document.getElementById("homeLink").hidden = false; }
+
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; clearTimeout(toast.h); toast.h = setTimeout(() => t.textContent = "", 4000); }
+
+build();
+load();
+if (!document.getElementById("aval").value) document.getElementById("aval").value = today();
+refresh();
+
+FIELDS.forEach(f => document.getElementById(f).addEventListener("input", () => { refresh(); save(); }));
+
+function makePdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const v = id => document.getElementById(id).value.trim();
+  const L = 18, R = 192, W = R - L, BOTTOM = 280;
+  let y = 20;
+  const need = h => { if (y + h > BOTTOM) { doc.addPage(); y = 20; } };
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+  doc.text("ESCALA DE TRAÇOS AUTÍSTICOS (ATA)", L, y); y += 6;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90);
+  doc.text("Ballabriga et al., 1994; adapt. Assumpção et al.", L, y); y += 9;
+  doc.setTextColor(0); doc.setFontSize(11);
+  [["Nome da criança", v("nome") || "—"], ["Data de nascimento", fmtDate(v("nasc"))],
+   ["Pai/Mãe/Responsável", v("resp") || "—"], ["Data da avaliação", fmtDate(v("aval"))]].forEach(([k, val]) => {
+    doc.setFont("helvetica", "bold"); doc.text(k + ":", L, y);
+    doc.setFont("helvetica", "normal"); doc.text(val, L + 45, y); y += 6.5;
+  });
+
+  const t = total();
+  y += 2;
+  doc.setDrawColor(0); doc.setLineWidth(0.4); doc.rect(L, y, W, 15);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text(`Pontos obtidos: ${t} de ${MAX}`, L + 4, y + 9.5);
+  doc.setFontSize(11); doc.text(statusText(t), R - 4, y + 9.5, { align: "right" });
+  y += 23;
+
+  AREAS.forEach((a, i) => {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+    const items = a[3].map(s => doc.splitTextToSize(s, W - 12));
+    need(8 + 5 * Math.min(items[0].length + 1, 3));
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text(`${a[0]}. ${a[1].toUpperCase()}`, L, y);
+    doc.text(ptsLabel(areaPoints(i)), R, y, { align: "right" });
+    y += 6;
+    doc.setFontSize(10);
+    items.forEach((lines, j) => {
+      need(lines.length * 4.6 + 1.5);
+      const on = marks[i][j];
+      doc.setLineWidth(0.3); doc.rect(L + 2, y - 3.2, 3.6, 3.6);
+      if (on) { doc.setLineWidth(0.6); doc.line(L + 2.6, y - 1.4, L + 3.6, y - 0.2); doc.line(L + 3.6, y - 0.2, L + 5.1, y - 2.8); }
+      doc.setFont("helvetica", on ? "bold" : "normal");
+      doc.text(lines, L + 9, y);
+      y += lines.length * 4.6 + 1.2;
+    });
+    y += 4;
+  });
+
+  if (v("obs")) {
+    const lines = doc.splitTextToSize(v("obs"), W);
+    need(10 + lines.length * 5);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text("OBSERVAÇÕES", L, y); y += 6;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.text(lines, L, y); y += lines.length * 5;
+  }
+
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p); doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(110);
+    doc.text("Pontuação: 0 sem sintomas; 1 com um sintoma; 2 com mais de um, em cada um dos 23 itens. Ponto de corte: 15.", L, 288);
+    doc.text(`Folha ${p} de ${pages}`, R, 288, { align: "right" });
+    doc.setTextColor(0);
+  }
+  return doc;
+}
+
+function pdfName() {
+  const nome = document.getElementById("nome").value.trim().replace(/[\\/:*?"<>|]/g, "");
+  const d = fmtDate(document.getElementById("aval").value).replace(/\//g, "-");
+  return `Escala ATA${nome ? " - " + nome : ""}${d !== "—" ? " - " + d : ""}.pdf`;
+}
+
+if (!embedded) {
+  const p = document.getElementById("btnPrint");
+  p.hidden = false;
+  p.addEventListener("click", () => window.print());
+  const b = document.getElementById("btnPdf");
+  b.hidden = false;
+  b.addEventListener("click", async () => {
+    if (!window.jspdf) { toast("Não foi possível criar o PDF. Verifique se o aparelho está com internet."); return; }
+    const doc = makePdf(), name = pdfName();
+    // No iPad e no tablet, abre a tela de compartilhar: dá para salvar em Arquivos, imprimir, mandar no WhatsApp ou no e-mail.
+    const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+    if (touch && navigator.canShare) {
+      const file = new File([doc.output("blob")], name, { type: "application/pdf" });
+      if (navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: name }); return; }
+        catch (e) { if (e.name === "AbortError") return; }
+      }
+    }
+    doc.save(name);
+    toast("PDF salvo na pasta Downloads.");
+  });
+} else {
+  document.getElementById("pdfNote").hidden = false;
+}
+
+document.getElementById("btnCopy").addEventListener("click", () => {
+  const text = report();
+  const fallback = () => {
+    const w = document.getElementById("copyWrap"), ta = document.getElementById("copyText");
+    ta.value = text; w.hidden = false; ta.focus(); ta.select();
+  };
+  try {
+    navigator.clipboard.writeText(text).then(() => toast("Copiado. Agora é só colar onde quiser."), fallback);
+  } catch (e) { fallback(); }
+});
+
+const confirmBox = document.getElementById("confirmBox"), btnNew = document.getElementById("btnNew");
+btnNew.addEventListener("click", () => { confirmBox.hidden = false; btnNew.hidden = true; });
+document.getElementById("btnNo").addEventListener("click", () => { confirmBox.hidden = true; btnNew.hidden = false; });
+document.getElementById("btnYes").addEventListener("click", () => {
+  marks = AREAS.map(a => a[3].map(() => false));
+  FIELDS.forEach(f => document.getElementById(f).value = "");
+  document.getElementById("aval").value = today();
+  document.getElementById("copyWrap").hidden = true;
+  confirmBox.hidden = true; btnNew.hidden = false;
+  refresh(); save();
+  window.scrollTo(0, 0);
+  toast("");
+});
+</script>
+
+</body>
+</html>
